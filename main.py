@@ -1,6 +1,20 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
+from sqlalchemy import Column, Integer, String, Float, Boolean 
+from database import Base, SessionLocal, engine
+from sqlalchemy.orm import Session 
+from fastapi import Depends
 app = FastAPI()
+
+class ProductDB(Base):
+    __tablename__ = "products"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    price = Column(Float, nullable=False)
+    in_stock = Column(Boolean, default=True)
+
+Base.metadata.create_all(bind=engine)
 
 class Product(BaseModel):
     name:str
@@ -25,13 +39,20 @@ workers_next_id=1
 users_next_id=1
 products_next_id=1
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
 @app.get("/")
 def home():
     return {"message": "It works"}
 
 @app.get("/products")
-def list_products():
-    return products
+def list_products(db: Session = Depends(get_db)):
+    return db.query(ProductDB).all()
 
 @app.get("/users")
 def list_users():
@@ -48,12 +69,12 @@ def get_product(product_id: int):
     return products[product_id]
 
 @app.post("/products")
-def create_product(product:Product):
-    global products_next_id
-    products[products_next_id] = product
-    created_id = products_next_id
-    products_next_id += 1
-    return {"id":created_id, "product":product}
+def create_product(product:Product, db: Session = Depends(get_db)):
+    new_product = ProductDB(name=product.name, price=product.price, in_stock=product.in_stock)
+    db.add(new_product)
+    db.commit()
+    db.refresh(new_product)
+    return new_product
 
 @app.put("/products/{product_id}")
 def update_product(product_id:int, product:Product):
