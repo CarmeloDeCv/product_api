@@ -80,10 +80,11 @@ def list_workers(db:Session = Depends(get_db)):
     return db.query(WorkerDB).all()
 
 @app.get("/products/{product_id}")
-def get_product(product_id: int):
-    if product_id not in products:
+def get_product(product_id: int, db:Session = Depends(get_db)):
+    db_product = db.query(ProductDB).filter(ProductDB.id==product_id).first()
+    if db_product is None:
         raise HTTPException(status_code=404, detail="Product not found")
-    return products[product_id]
+    return db_product
 
 @app.post("/products")
 def create_product(product:Product, db: Session = Depends(get_db)):
@@ -101,17 +102,20 @@ def update_product(product_id:int, product:Product):
     return {"updated":product_id, "product":product}
 
 @app.delete("/products/{product_id}")
-def delete_product(product_id: int):
-    if product_id not in products:
+def delete_product(product_id: int, db:Session = Depends(get_db)):
+    db_product = db.query(ProductDB).filter(ProductDB.id==product_id).first()
+    if db_product is None:
         raise HTTPException(status_code=404, detail="Product not found")
-    del products[product_id]
-    return {"deleted": product_id}
+    db.delete(db_product)
+    db.commit()
+    return {"deleted": db_product}
 
 @app.get("/users/{user_id}")
-def get_user(user_id:int):
-    if user_id not in users:
+def get_user(user_id:int, db:Session = Depends(get_db)):
+    db_user = db.query(UserDB).filter(ProductDB.id == user_id).first()
+    if db_user is None:
         raise HTTPException(status_code=404, detail = "User not found")
-    return users[user_id]
+    return db_user
 
 @app.post("/users")
 def create_user(user: User, db: Session = Depends(get_db)):
@@ -129,17 +133,20 @@ def change_user(user_id:int, user:User):
     return {"updated":user_id, "user": user}
 
 @app.delete("/users/{user_id}")
-def delete_user(user_id:int):
-    if user_id not in users:
+def delete_user(user_id:int, db:Session = Depends(get_db)):
+    db_user = db.query(UserDB).filter(UserDB.id==user_id).first()
+    if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    del users[user_id]
-    return {"deleted":user_id}
+    db.delete(db_user)
+    db.commit()
+    return {"deleted":db_user}
 
 @app.get("/workers/{worker_id}")
-def get_worker(worker_id:int):
-    if worker_id not in workers:
+def get_worker(worker_id:int, db:Session = Depends(get_db)):
+    db_worker = db.query(WorkerDB).filter(WorkerDB.id == worker_id).first()
+    if db_worker is None:
         raise HTTPException(status_code=404, detail="worker not found")
-    return workers[worker_id]
+    return db_worker
 
 @app.post("/workers")
 def create_worker(worker:Workers, db:Session = Depends(get_db)):
@@ -157,11 +164,13 @@ def change_worker(worker_id:int, worker:Workers):
     return{"updated":worker_id, "worker":worker}
 
 @app.delete("/workers/{worker_id}")
-def delete_worker(worker_id:int):
-    if worker_id not in workers:
+def delete_worker(worker_id:int, db:Session = Depends(get_db)):
+    db_worker = db.query(WorkerDB).filter(WorkerDB.id==worker_id).first()
+    if db_worker is None:
         raise HTTPException(status_code=404, detail="worker not found")
-    del workers[worker_id]
-    return{"deleted":worker_id}
+    db.delete(db_worker)
+    db.commit()
+    return{"deleted":db_worker}
 
 
 
