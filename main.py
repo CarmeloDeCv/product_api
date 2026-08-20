@@ -95,11 +95,15 @@ def create_product(product:Product, db: Session = Depends(get_db)):
     return new_product
 
 @app.put("/products/{product_id}")
-def update_product(product_id:int, product:Product):
-    if product_id not in products:
+def update_product(product_id:int, product:Product, db:Session = Depends(get_db)):
+    db_product = db.query(ProductDB).filter(ProductDB.id==product_id).first()
+    if product_id is None:
         raise HTTPException(status_code=404, detail="Product not found")
-    products[product_id] = product
-    return {"updated":product_id, "product":product}
+    db_product.name=product.name
+    db_product.price=product.price
+    db_product.in_stock=product.in_stock
+    db.commit()
+    return {"updated":db_product.id, "product":product}
 
 @app.delete("/products/{product_id}")
 def delete_product(product_id: int, db:Session = Depends(get_db)):
@@ -126,11 +130,15 @@ def create_user(user: User, db: Session = Depends(get_db)):
     return new_user
 
 @app.put("/users/{user_id}")
-def change_user(user_id:int, user:User):
-    if user_id not in users:
+def change_user(user_id:int, user:User, db:Session = Depends(get_db)):
+    db_user = db.query(UserDB).filter(UserDB.id==user_id).first()
+    if db_user is None:
         raise HTTPException(status_code=404, detail="User not found")
-    users[user_id]=user
-    return {"updated":user_id, "user": user}
+    db_user.name = user.name
+    db_user.surname = user.surname
+    db_user.phone_number = user.phone_number
+    db.commit()
+    return {"updated":db_user.id, "user": user}
 
 @app.delete("/users/{user_id}")
 def delete_user(user_id:int, db:Session = Depends(get_db)):
@@ -157,11 +165,15 @@ def create_worker(worker:Workers, db:Session = Depends(get_db)):
     return new_worker
 
 @app.put("/workers/{worker_id}")
-def change_worker(worker_id:int, worker:Workers):
-    if worker_id not in workers:
+def change_worker(worker_id:int, worker:Workers, db:Session = Depends(get_db)):
+    db_worker = db.query(WorkerDB).filter(WorkerDB.id==worker_id).first()
+    if db_worker is None:
         raise HTTPException(status_code=404, detail="worker not found")
-    workers[worker_id]= worker
-    return{"updated":worker_id, "worker":worker}
+    db_worker.name = worker.name
+    db_worker.surname = worker.surname
+    db_worker.role = worker.role
+    db.commit()
+    return{"updated":db_worker.id, "worker":worker}
 
 @app.delete("/workers/{worker_id}")
 def delete_worker(worker_id:int, db:Session = Depends(get_db)):
