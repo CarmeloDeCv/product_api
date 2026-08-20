@@ -14,6 +14,23 @@ class ProductDB(Base):
     price = Column(Float, nullable=False)
     in_stock = Column(Boolean, default=True)
 
+class UserDB(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    surname = Column(String, nullable=False)
+    phone_number = Column(String, nullable=False)
+
+
+class WorkerDB(Base):
+    __tablename__ = "workers"
+
+    id = Column(Integer, primary_key= True, index=True)
+    name = Column(String, nullable=False)
+    surname = Column(String, nullable=False)
+    role = Column(String, nullable=False)
+
 Base.metadata.create_all(bind=engine)
 
 class Product(BaseModel):
@@ -29,7 +46,7 @@ class User(BaseModel):
 class Workers(BaseModel):
     name:str
     surname:str
-    company_id:int
+    role:str
 
 
 products={}
@@ -55,12 +72,12 @@ def list_products(db: Session = Depends(get_db)):
     return db.query(ProductDB).all()
 
 @app.get("/users")
-def list_users():
-    return users
+def list_users(db:Session = Depends(get_db)):
+    return db.query(UserDB).all()
 
 @app.get("/workers")
-def list_workers():
-    return workers
+def list_workers(db:Session = Depends(get_db)):
+    return db.query(WorkerDB).all()
 
 @app.get("/products/{product_id}")
 def get_product(product_id: int):
@@ -97,12 +114,12 @@ def get_user(user_id:int):
     return users[user_id]
 
 @app.post("/users")
-def create_user(user: User):
-    global users_next_id
-    users[users_next_id]=user
-    created_user_id=users_next_id
-    users_next_id+=1
-    return {"id":created_user_id, "user":user}
+def create_user(user: User, db: Session = Depends(get_db)):
+    new_user = UserDB(name=user.name, surname = user.surname, phone_number = user.phone_number)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
 
 @app.put("/users/{user_id}")
 def change_user(user_id:int, user:User):
@@ -125,12 +142,12 @@ def get_worker(worker_id:int):
     return workers[worker_id]
 
 @app.post("/workers")
-def create_worker(worker:Workers):
-    global workers_next_id
-    workers[workers_next_id]=worker
-    created_worker_id=workers_next_id
-    workers_next_id+=1
-    return{"id":created_worker_id, "worker":worker}
+def create_worker(worker:Workers, db:Session = Depends(get_db)):
+    new_worker = WorkerDB(name=worker.name, surname=worker.surname, role=worker.role)
+    db.add(new_worker)
+    db.commit()
+    db.refresh(new_worker)
+    return new_worker
 
 @app.put("/workers/{worker_id}")
 def change_worker(worker_id:int, worker:Workers):
