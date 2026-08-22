@@ -1,37 +1,20 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel
-from sqlalchemy import Column, Integer, String, Float, Boolean 
-from database import Base, SessionLocal, engine
+from database import SessionLocal, engine, Base
 from sqlalchemy.orm import Session 
-from fastapi import Depends
+from auth import hash_password, verify_password, create_access_token
+from models import ProductDB, UserDB, WorkerDB
+
 app = FastAPI()
 
-class ProductDB(Base):
-    __tablename__ = "products"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    price = Column(Float, nullable=False)
-    in_stock = Column(Boolean, default=True)
-
-class UserDB(Base):
-    __tablename__ = "users"
-
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, nullable=False)
-    surname = Column(String, nullable=False)
-    phone_number = Column(String, nullable=False)
-
-
-class WorkerDB(Base):
-    __tablename__ = "workers"
-
-    id = Column(Integer, primary_key= True, index=True)
-    name = Column(String, nullable=False)
-    surname = Column(String, nullable=False)
-    role = Column(String, nullable=False)
-
 Base.metadata.create_all(bind=engine)
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
 class Product(BaseModel):
     name:str
@@ -48,21 +31,6 @@ class Workers(BaseModel):
     surname:str
     role:str
 
-
-products={}
-users={}
-workers={}
-workers_next_id=1
-users_next_id=1
-products_next_id=1
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 @app.get("/")
 def home():
     return {"message": "It works"}
@@ -78,6 +46,23 @@ def list_users(db:Session = Depends(get_db)):
 @app.get("/workers")
 def list_workers(db:Session = Depends(get_db)):
     return db.query(WorkerDB).all()
+
+@app.post("/register")
+def register(username:str, password:str, db:Session = Depends(get_db)):
+    hashed=hash_password(password)
+    new_user = UserDB(name=username, surname="", phone_number="", hashed_password = hashed)
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return {"registered": new_user.name}
+
+@app.post("/login")
+def login(username:str, password:str, db:Session = Depends(get_db)):
+    user=db.query(UserDB).filter(UserDB.name==username).first()
+    if not user or not (verify_password(password, user.hashed_password)):
+        raise HTTPException(status_code=401, detail="Username or password not matching")
+    token = create_access_token({"sub":user.name})
+    return {"access_token": token, "token_type":"bearer"}
 
 @app.get("/products/{product_id}")
 def get_product(product_id: int, db:Session = Depends(get_db)):
