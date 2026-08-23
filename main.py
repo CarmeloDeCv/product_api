@@ -6,8 +6,14 @@ from database import SessionLocal, engine, Base
 from sqlalchemy.orm import Session 
 from auth import hash_password, verify_password, create_access_token, SECRET_KEY, ALGORITHM
 from models import ProductDB, UserDB, WorkerDB
+from dotenv import load_dotenv
+import os
 
 app = FastAPI()
+
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 Base.metadata.create_all(bind=engine)
 
