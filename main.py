@@ -69,9 +69,9 @@ def list_workers(db:Session = Depends(get_db), current_user:UserDB=Depends(get_c
     return db.query(WorkerDB).all()
 
 @app.post("/register")
-def register(username:str, password:str, db:Session = Depends(get_db)):
-    hashed=hash_password(password)
-    new_user = UserDB(name=username, surname="", phone_number="", hashed_password = hashed)
+def register(form_data : OAuth2PasswordRequestForm = Depends(), db:Session = Depends(get_db)):
+    hashed=hash_password(form_data.password)
+    new_user = UserDB(name=form_data.username, surname="", phone_number="", hashed_password = hashed)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
